@@ -13,7 +13,9 @@
     "typescript": "^3.0.1"
   },
   "dependencies": {
-    "discord.js": "^11.3.2"
+    "@types/mongoose": "^5.2.4",
+    "discord.js": "^11.3.2",
+    "mongoose": "^5.2.7"
   },
   "scripts": {
     "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./lib/index.ts",
