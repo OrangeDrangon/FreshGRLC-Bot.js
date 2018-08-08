@@ -1,0 +1,23 @@
+{
+  "name": "FreshGRLC-Bot.js",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "repository": "https://github.com/OrangeDrangon/FreshGRLC-Bot.js.git",
+  "author": "Kyle Rosenberg <kyle@ekrosenberg.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^10.5.7",
+    "nodemon": "^1.18.3",
+    "ts-node": "^7.0.0",
+    "tslint": "^5.11.0",
+    "typescript": "^3.0.1"
+  },
+  "dependencies": {
+    "discord.js": "^11.3.2"
+  },
+  "scripts": {
+    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./lib/index.ts",
+    "run-dev": "npm run build:live",
+    "build": "yarn tsc"
+  }
+}
