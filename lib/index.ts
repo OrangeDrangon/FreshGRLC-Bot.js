@@ -27,7 +27,6 @@ client.on('message', async (message) => {
                 'https://upload.wikimedia.org/wikipedia/commons/5/56/Neptune_Full.jpg',
             );
             embed.setColor('DARK_GOLD');
-            // TODO Fix approved channels formatting
             embed.fields = [
                 {
                     inline: false,
@@ -37,7 +36,7 @@ client.on('message', async (message) => {
                 {
                     inline: false,
                     name: 'Approved Channels',
-                    value: `[${['1233432', '12344235435'].toString()}]`,
+                    value: ['470317836615811083'].join(', '), // Will change to serverConfig.approvedChannels.join(', ')
                 },
             ];
             embed.setFooter('Second arguement should be "set" to set config');
