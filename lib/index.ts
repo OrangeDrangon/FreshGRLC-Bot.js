@@ -22,6 +22,7 @@ client.on('message', async (message) => {
 
         serverConfig.approvedChannels.push(channel.id);
 
+        await channel.send({ embed: generateEmbeded(undefined, { 'New Approved Channels': `[${formatApprovedChannels(serverConfig.approvedChannels).join(', ')}]` }) });
         await serverConfig.save();
         return;
     }
@@ -32,12 +33,12 @@ client.on('message', async (message) => {
     if (message.content.slice(0, serverConfig.prefix.length) !== serverConfig.prefix) { return; }
 
     if (content[0] === 'config') {
-        const approvedChannels: string[] = Array(serverConfig.approvedChannels.length);
-        for (let i = 0; i < serverConfig.approvedChannels.length; i++) {
-            approvedChannels[i] = (client.channels.find('id', serverConfig.approvedChannels[i]) as TextChannel).name;
-        }
+        const description = `Run "!allow" and "!remove" to permit channels for the bot.
+        Run "!prefix {prefix} to set the prefix.`;
 
-        await channel.send({ embed: generateEmbeded(undefined, { 'Approved Channels': `[${approvedChannels.join(', ')}]`, 'Prefix': serverConfig.prefix }) });
+        const fields = { 'Approved Channels': `[${formatApprovedChannels(serverConfig.approvedChannels).join(', ')}]`, 'Prefix': serverConfig.prefix };
+
+        await channel.send({ embed: generateEmbeded(description, fields) });
         return;
     }
 
@@ -48,6 +49,7 @@ client.on('message', async (message) => {
 
         serverConfig.approvedChannels.splice(index, 1);
 
+        await channel.send({ embed: generateEmbeded(undefined, { 'New Approved Channels': `[${formatApprovedChannels(serverConfig.approvedChannels).join(', ')}]` }) });
         await serverConfig.save();
         return;
     }
@@ -59,6 +61,14 @@ client.on('message', async (message) => {
         return;
     }
 });
+
+const formatApprovedChannels = (approvedChannels: string[]) => {
+    const approvedFormatted: string[] = new Array(approvedChannels.length);
+    for (let i = 0; i < approvedChannels.length; i++) {
+        approvedFormatted[i] = `#${(client.channels.find('id', approvedChannels[i]) as TextChannel).name}`;
+    }
+    return approvedFormatted.sort();
+};
 
 const getServerConfig = async (message: Message) => {
     let serverConfig = await ServerConfigModel.findOne({ id: message.guild.id }) || undefined;
