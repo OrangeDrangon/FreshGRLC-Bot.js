@@ -2,8 +2,10 @@ import axios from 'axios';
 import discord, { Message, TextChannel } from 'discord.js';
 import mongoose from 'mongoose';
 
-import { BOTNAME, DATABASEURL, LOGOURL, POOLAPIADDRESS, TOKEN } from './config';
+import { BOTNAME, CMCAPIKEY, DATABASEURL, LOGOURL, POOLAPIADDRESS, TOKEN } from './config';
 import { IServerConfig, ServerConfigModel } from './models/serverConfig';
+
+let cryptoInfo: any[] | undefined;
 
 const client = new discord.Client();
 client.login(TOKEN);
@@ -75,12 +77,75 @@ client.on('message', async (message) => {
             'Difficulty': difficulty.toFixed(2),
             'Network Hashrate': ((difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
             'Pool Hashrate': ((poolInfo.averageHashrate as number) / 1000000000).toFixed(2) + ' GH/s',
-            'Pool Workers': poolInfo.workers,
             'Pool Luck': (average(luck) * 100).toFixed(2) + '%',
+            'Pool Workers': poolInfo.workers,
         };
 
         await channel.send({ embed: generateEmbeded(undefined, fields) });
         return;
+    }
+
+    if (content[0] === 'cmc') {
+        const options = { headers: { 'X-CMC_PRO_API_KEY': CMCAPIKEY } };
+
+        if (!cryptoInfo) {
+            cryptoInfo = (await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000', options)).data.data;
+        }
+
+        if (!cryptoInfo) { return; }
+
+        if (!content[1]) { content[1] = 'grlc'; }
+
+        let coinInfo;
+
+        for (const coin of cryptoInfo) {
+            if (content[1].toUpperCase() === coin.symbol || content[1].toLowerCase() === coin.slug) { coinInfo = coin; }
+        }
+
+        if (!coinInfo) { return; }
+
+        const metadata = (await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/info?symbol=${coinInfo.symbol}`, options)).data.data;
+
+        const embed = new discord.RichEmbed();
+
+        embed.setAuthor(`${coinInfo.name} Info`, metadata[coinInfo.symbol].logo, 'https://coinmarketcap.com/currencies/' + coinInfo.slug);
+
+        embed.setColor('DARK_GOLD');
+
+        const latestInfoUSD = (await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${coinInfo.id}&convert=USD`, options)).data.data[coinInfo.id];
+        const latestInfoBTC = (await axios.get(`https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${coinInfo.id}&convert=BTC`, options)).data.data[coinInfo.id];
+
+        embed.fields = [
+            {
+                inline: false,
+                name: 'Rank',
+                value: latestInfoUSD.cmc_rank.toString(),
+            },
+            {
+                inline: false,
+                name: 'Price USD',
+                value: `$${latestInfoUSD.quote.USD.price}`,
+            },
+            {
+                inline: false,
+                name: 'Price BTC',
+                value: `${latestInfoBTC.quote.BTC.price.toFixed(14)} BTC`,
+            },
+            {
+                inline: false,
+                name: 'Market Cap',
+                value: `$${(latestInfoUSD.quote.USD.market_cap / 100).toFixed(2)}`,
+            },
+            {
+                inline: false,
+                name: 'Circulating Supply',
+                value: latestInfoUSD.circulating_supply.toString(),
+            },
+        ];
+
+        await channel.send({ embed });
+        return;
+
     }
 });
 
