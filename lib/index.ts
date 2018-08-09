@@ -1,7 +1,8 @@
+import axios from 'axios';
 import discord, { Message, TextChannel } from 'discord.js';
 import mongoose from 'mongoose';
 
-import { BOTNAME, DATABASEURL, LOGOURL, TOKEN } from './config';
+import { BOTNAME, DATABASEURL, LOGOURL, POOLAPIADDRESS, TOKEN } from './config';
 import { IServerConfig, ServerConfigModel } from './models/serverConfig';
 
 const client = new discord.Client();
@@ -13,7 +14,9 @@ client.on('message', async (message) => {
     if (message.author.id === client.user.id) { return; }
 
     const serverConfig = await getServerConfig(message);
+
     const channel = message.channel;
+
     const content = message.content.split(' ');
     content[0] = content[0].replace(serverConfig.prefix, '');
 
@@ -57,10 +60,37 @@ client.on('message', async (message) => {
     if (content[0] === 'prefix' && content[1]) {
         serverConfig.prefix = content[1];
 
+        await channel.send({ embed: generateEmbeded(undefined, { Prefix: serverConfig.prefix }) });
         await serverConfig.save();
         return;
     }
+
+    if (content[0] === 'info') {
+        const difficulty = (await axios.get('https://garlicinsight.com/insight-grlc-api/status?q=getDifficulty')).data.difficulty as number;
+        const poolInfo = (await axios.get(POOLAPIADDRESS + '/poolstats/noheights')).data;
+        const luck = (await axios.get(POOLAPIADDRESS + '/luck')).data.map((x: any) => x.luck);
+
+        const fields = {
+            'Block Height': (await axios.get('https://garlicinsight.com/insight-grlc-api/blocks?limit=1')).data.blocks[0].height,
+            'Difficulty': difficulty.toFixed(2),
+            'Network Hashrate': ((difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
+            'Pool Hashrate': ((poolInfo.averageHashrate as number) / 1000000000).toFixed(2) + ' GH/s',
+            'Pool Workers': poolInfo.workers,
+            'Pool Luck': (average(luck) * 100).toFixed(2) + '%',
+        };
+
+        await channel.send({ embed: generateEmbeded(undefined, fields) });
+        return;
+    }
 });
+
+const average = (values: number[]) => {
+    let sum = 0;
+    for (const value of values) {
+        sum += value;
+    }
+    return sum / values.length;
+};
 
 const formatApprovedChannels = (approvedChannels: string[]) => {
     const approvedFormatted: string[] = new Array(approvedChannels.length);
@@ -68,6 +98,28 @@ const formatApprovedChannels = (approvedChannels: string[]) => {
         approvedFormatted[i] = `#${(client.channels.find('id', approvedChannels[i]) as TextChannel).name}`;
     }
     return approvedFormatted.sort();
+};
+
+const generateEmbeded = (description?: string, fields?: IFieldsParameter) => {
+    const embed = new discord.RichEmbed();
+
+    embed.setAuthor(BOTNAME, LOGOURL);
+
+    embed.setColor('DARK_GOLD');
+
+    if (description) { embed.setDescription(description); }
+
+    if (fields) {
+        const formattedFields: IFields[] = [];
+        for (const key in fields) {
+            if (fields.hasOwnProperty(key)) {
+                formattedFields.push({ inline: true, name: key, value: fields[key] });
+            }
+        }
+        embed.fields = formattedFields;
+    }
+
+    return embed;
 };
 
 const getServerConfig = async (message: Message) => {
@@ -87,25 +139,3 @@ interface IFields {
 interface IFieldsParameter {
     [key: string]: string;
 }
-
-const generateEmbeded = (description?: string, fields?: IFieldsParameter) => {
-    const embed = new discord.RichEmbed();
-
-    embed.setAuthor(BOTNAME, LOGOURL);
-
-    embed.setColor('DARK_GOLD');
-
-    if (description) { embed.setDescription(description); }
-
-    if (fields) {
-        const formattedFields: IFields[] = [];
-        for (const key in fields) {
-            if (fields.hasOwnProperty(key)) {
-                formattedFields.push({ inline: false, name: key, value: fields[key] });
-            }
-        }
-        embed.fields = formattedFields;
-    }
-
-    return embed;
-};
