@@ -27,4 +27,6 @@ npm run build
 npm run run
 ```
 
+Also you need a mongo instance but that is not my job to walk you through.
+
 From there everything should be good to go.
