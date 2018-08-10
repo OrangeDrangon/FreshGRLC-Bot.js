@@ -27,7 +27,7 @@ client.on('message', async (message) => {
     const content = message.content.split(' ');
     content[0] = content[0].replace(serverConfig.prefix, '');
 
-    if (message.member.hasPermission('ADMINISTRATOR') && content[0] === 'allow') {
+    if (message.member.hasPermission('MANAGE_CHANNELS') && content[0] === 'allow') {
         if (serverConfig.approvedChannels.indexOf(channel.id) > -1) { return; }
 
         serverConfig.approvedChannels.push(channel.id);
@@ -75,6 +75,9 @@ client.on('message', async (message) => {
 
         await channel.send({ embed: generateEmbeded(undefined, { Prefix: serverConfig.prefix }) });
         await serverConfig.save();
+
+        cache.set(message.guild.id, serverConfig);
+
         return;
     }
 
@@ -93,9 +96,9 @@ client.on('message', async (message) => {
         }
 
         const fields = {
+            'Network Hashrate': ((info.difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
             'Block Height': info.blockHeight,
             'Difficulty': info.difficulty.toFixed(2),
-            'Network Hashrate': ((info.difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
             'Pool Hashrate': ((info.poolInfo.averageHashrate as number) / 1000000000).toFixed(2) + ' GH/s',
             'Pool Luck': (average(info.luck) * 100).toFixed(2) + '%',
             'Pool Workers': info.poolInfo.workers,
@@ -196,7 +199,7 @@ client.on('message', async (message) => {
     if (content[0] === 'myinfo') {
         let address = await getUserAddress(message);
 
-        if (!address) { address = 'WRAThkWV8wscUhacTPqHu9DxLsuonDZfUf' }
+        if (!address) { return; }
 
         let info: { balance: number | undefined, workerInfo: any } | undefined = cache.get(message.author.id);
 
@@ -221,7 +224,7 @@ client.on('message', async (message) => {
 
         embed.setColor('DARK_GOLD');
 
-        const balance = info.balance ? info.balance.toFixed(10) : 'Unavalible';
+        const balance = info.balance ? info.balance.toFixed(10) : 'Unavailable';
 
         embed.fields = [
             {
@@ -236,18 +239,18 @@ client.on('message', async (message) => {
             },
             {
                 inline: true,
-                name: 'Expexted Payout',
-                value: `${info.workerInfo.nextpayout.grlc.toFixed(10)} GRLC`,
-            },
-            {
-                inline: true,
                 name: 'Estimated Hashrate',
-                value: `${(parseFloat(info.workerInfo.hashrate) / 1000).toFixed(2) || 0} KH/s`,
+                value: `${(parseFloat(info.workerInfo.hashrate) / 1000000).toFixed(2) || 0} MH/s`,
             },
             {
                 inline: true,
                 name: 'Percentage of Pool',
                 value: `${info.workerInfo.nextpayout.percentage.toFixed(2)}%`,
+            },
+            {
+                inline: true,
+                name: 'Expexted Payout',
+                value: `${info.workerInfo.nextpayout.grlc.toFixed(10)} GRLC`,
             },
         ];
 
@@ -256,13 +259,11 @@ client.on('message', async (message) => {
     }
 
     if (content[0] === 'register' && content[1]) {
-        const model = await AddressModel.findOne({id: message.author.id}) || await new AddressModel({ address: content[1], id: message.author.id });
+        const model = await AddressModel.findOneAndUpdate({ id: message.author.id }, { address: content[1] }) || await new AddressModel({ address: content[1], id: message.author.id }).save();
 
-        const address = (await model.save()).address;
+        await channel.send({ embed: generateEmbeded('You are now registered!', { Address: content[1] }) });
 
-        await channel.send({ embed: generateEmbeded('You are now registered!', { Address: address }) });
-
-        cache.set(message.author.id + 'address', {address})
+        cache.set(message.author.id + 'address', { address: content[1] })
 
         return;
     }
