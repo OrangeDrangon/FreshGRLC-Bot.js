@@ -11,7 +11,9 @@ client.login(TOKEN);
 
 mongoose.connect(DATABASEURL, { useNewUrlParser: true });
 
-const cache = new NodeCache({ stdTTL: 60 * 5, checkperiod: 60 * 6 });
+const cache = new NodeCache({ stdTTL: 60 * 5, checkperiod: 60 });
+
+client.on('ready', () => console.log('Connected!'));
 
 client.on('message', async (message) => {
     if (message.author.id === client.user.id) { return; }
@@ -69,17 +71,26 @@ client.on('message', async (message) => {
     }
 
     if (content[0] === 'info') {
-        const difficulty = (await axios.get('https://garlicinsight.com/insight-grlc-api/status?q=getDifficulty')).data.difficulty as number;
-        const poolInfo = (await axios.get(POOLAPIADDRESS + '/poolstats/noheights')).data;
-        const luck = (await axios.get(POOLAPIADDRESS + '/luck')).data.map((x: any) => x.luck);
+        let info = cache.get<{ difficulty: number, poolInfo: any, luck: number[], blockHeight: string }>('info');
+
+        if (!info) {
+            const difficulty = (await axios.get('https://garlicinsight.com/insight-grlc-api/status?q=getDifficulty')).data.difficulty as number;
+            const poolInfo = (await axios.get(POOLAPIADDRESS + '/poolstats/noheights')).data;
+            const luck = (await axios.get(POOLAPIADDRESS + '/luck')).data.map((x: any) => x.luck);
+            const blockHeight = (await axios.get('https://garlicinsight.com/insight-grlc-api/blocks?limit=1')).data.blocks[0].height;
+
+            info = { difficulty, poolInfo, luck, blockHeight };
+
+            cache.set('info', info, 40);
+        }
 
         const fields = {
-            'Block Height': (await axios.get('https://garlicinsight.com/insight-grlc-api/blocks?limit=1')).data.blocks[0].height,
-            'Difficulty': difficulty.toFixed(2),
-            'Network Hashrate': ((difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
-            'Pool Hashrate': ((poolInfo.averageHashrate as number) / 1000000000).toFixed(2) + ' GH/s',
-            'Pool Luck': (average(luck) * 100).toFixed(2) + '%',
-            'Pool Workers': poolInfo.workers,
+            'Block Height': info.blockHeight,
+            'Difficulty': info.difficulty.toFixed(2),
+            'Network Hashrate': ((info.difficulty * 2 ** 32) / 40 / 1000000000).toFixed(2) + ' GH/s',
+            'Pool Hashrate': ((info.poolInfo.averageHashrate as number) / 1000000000).toFixed(2) + ' GH/s',
+            'Pool Luck': (average(info.luck) * 100).toFixed(2) + '%',
+            'Pool Workers': info.poolInfo.workers,
         };
 
         await channel.send({ embed: generateEmbeded(undefined, fields) });
@@ -96,8 +107,8 @@ client.on('message', async (message) => {
 
         if (!cryptoInfo) {
             try {
-                // cryptoInfo = (await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000', options)).data.data;
                 cryptoInfo = (await axios.get(`https://api.coinmarketcap.com/v2/listings/`)).data.data;
+                // cryptoInfo = (await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000', options)).data.data;
 
                 cache.set('cryptoInfo', cryptoInfo, 60 * 30);
             } catch (error) { return await channel.send({ embed: generateEmbeded('There was an error here is some possibly technical stuff, possibly clear as day.', error.response.data) }); }
@@ -177,17 +188,21 @@ client.on('message', async (message) => {
 
 const average = (values: number[]) => {
     let sum = 0;
+
     for (const value of values) {
         sum += value;
     }
+
     return sum / values.length;
 };
 
 const formatApprovedChannels = (approvedChannels: string[]) => {
     const approvedFormatted: string[] = new Array(approvedChannels.length);
+
     for (let i = 0; i < approvedChannels.length; i++) {
         approvedFormatted[i] = `#${(client.channels.find('id', approvedChannels[i]) as TextChannel).name}`;
     }
+
     return approvedFormatted.sort();
 };
 
@@ -214,11 +229,18 @@ const generateEmbeded = (description?: string, fields?: IFieldsParameter) => {
 };
 
 const getServerConfig = async (message: Message) => {
-    let serverConfig = await ServerConfigModel.findOne({ id: message.guild.id }) || undefined;
-    if (serverConfig) { return serverConfig; } else {
-        serverConfig = { approvedChannels: [] as string[], id: message.guild.id, prefix: '!' } as IServerConfig;
-        return await new ServerConfigModel(serverConfig).save();
+    let serverConfig = cache.get<IServerConfig>(message.guild.id);
+
+    if (!serverConfig) {
+        serverConfig = await ServerConfigModel.findOne({ id: message.guild.id }) || undefined;
+
+        if (!serverConfig) {
+            const defaultConfig = { approvedChannels: [] as string[], id: message.guild.id, prefix: '!' } as IServerConfig;
+            serverConfig = await new ServerConfigModel(defaultConfig).save();
+            cache.set(message.guild.id, serverConfig);
+        }
     }
+    return serverConfig;
 };
 
 interface IFields {
