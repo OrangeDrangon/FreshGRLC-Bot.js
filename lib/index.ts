@@ -8,6 +8,7 @@ import { IServerConfig, ServerConfigModel } from './models/serverConfig';
 import { AddressModel } from './models/address';
 
 const client = new discord.Client();
+
 client.login(TOKEN);
 
 mongoose.connect(DATABASEURL, { useNewUrlParser: true });
