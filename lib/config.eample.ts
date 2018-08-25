@@ -7,8 +7,6 @@ export const DATABASEURL = `mongodb://${username}:${password}@url with /dbname`;
 
 export const BOTNAME = 'bot name';
 
-export const LOGOURL = 'logo for bot';
-
 // Probably https://www.freshgrlc.net/api
 
 export const POOLAPIADDRESS = 'api endpoint for bot wont work to hot if changed because of other hard coded routes in code';

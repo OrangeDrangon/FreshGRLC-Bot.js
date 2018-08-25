@@ -24,7 +24,7 @@ npm run build
 
 6. Run the bot any time after build with the command below.
 ```
-npm run run
+npm run start
 ```
 
 From there everything should be good to go.

@@ -3,7 +3,7 @@ import discord, { Message, TextChannel } from 'discord.js';
 import mongoose from 'mongoose';
 import NodeCache from 'node-cache';
 
-import { BOTNAME, CMCAPIKEY, DATABASEURL, LOGOURL, POOLAPIADDRESS, TOKEN } from './config';
+import { BOTNAME, CMCAPIKEY, DATABASEURL, POOLAPIADDRESS, TOKEN } from './config';
 import { IServerConfig, ServerConfigModel } from './models/serverConfig';
 import { AddressModel } from './models/address';
 
@@ -292,7 +292,7 @@ const formatApprovedChannels = (approvedChannels: string[]) => {
 const generateEmbeded = (description?: string, fields?: IFieldsParameter) => {
     const embed = new discord.RichEmbed();
 
-    embed.setAuthor(BOTNAME, LOGOURL);
+    embed.setAuthor(BOTNAME, client.user.avatarURL);
 
     embed.setColor('DARK_GOLD');
 

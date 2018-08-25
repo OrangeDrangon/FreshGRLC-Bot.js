@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build:live": "npm run nodemon --exec ./node_modules/.bin/ts-node -- ./lib/index.ts",
-    "build": "npm run tsc",
-    "run": "node ./dist/index.js"
+    "build": "tsc",
+    "start": "node ./dist/index.js"
   }
 }
