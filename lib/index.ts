@@ -85,10 +85,10 @@ client.on('message', async (message) => {
         let info = cache.get<{ difficulty: number, poolInfo: any, luck: number[], blockHeight: string }>('info');
 
         if (!info) {
-            const difficulty = (await axios.get('https://garlicinsight.com/insight-grlc-api/status?q=getDifficulty')).data.difficulty as number;
+            const difficulty = (await axios.get('https://garli.co.in/insight-grlc-api/status?q=getDifficulty')).data.difficulty as number;
             const poolInfo = (await axios.get(POOLAPIADDRESS + '/poolstats/noheights')).data;
             const luck = (await axios.get(POOLAPIADDRESS + '/luck')).data.map((x: any) => x.luck);
-            const blockHeight = (await axios.get('https://garlicinsight.com/insight-grlc-api/blocks?limit=1')).data.blocks[0].height;
+            const blockHeight = (await axios.get('https://garli.co.in/insight-grlc-api/blocks?limit=1')).data.blocks[0].height;
 
             info = { difficulty, poolInfo, luck, blockHeight };
 
@@ -206,7 +206,7 @@ client.on('message', async (message) => {
         if (!info) {
             let balance: number | undefined;
             try {
-                balance = (await axios.get('https://garlicinsight.com/insight-grlc-api/addr/' + address)).data.balance;
+                balance = (await axios.get('https://garli.co.in/insight-grlc-api/addr/' + address)).data.balance;
             } catch (error) { }
 
             try {
@@ -220,7 +220,7 @@ client.on('message', async (message) => {
 
         const embed = new discord.RichEmbed();
 
-        embed.setAuthor(`${message.guild.members.find('id', message.author.id).displayName || message.author.username}'s Info`, message.author.displayAvatarURL, 'https://garlicinsight.com/address/' + address);
+        embed.setAuthor(`${message.guild.members.find('id', message.author.id).displayName || message.author.username}'s Info`, message.author.displayAvatarURL, 'https://garli.co.in/address/' + address);
 
         embed.setColor('DARK_GOLD');
 
