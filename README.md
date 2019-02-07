@@ -1,5 +1,7 @@
 # FreshGRLC-Bot.js
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/OrangeDrangon/FreshGRLC-Bot.js.svg)](https://greenkeeper.io/)
+
 1. Make sure node and your prefered package manager is installed. I use [yarn](https://github.com/yarnpkg/yarn/) but the default npm works great. To make sure node is installed run the command below. It should return something like `v10.3.0`
 ```
 node --version
